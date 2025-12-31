@@ -12,7 +12,7 @@ A minimal, clean, and responsive web application for tracking your books and rea
 - ✅ Delete books
 - ✅ Color-coded status badges (Read → Green, Reading → Blue, Not Read → Gray)
 - ✅ Clean, minimal UI with Tailwind CSS
-- ✅ MySQL database with Docker Compose
+- ✅ SQLite embedded database (no separate service needed)
 
 ## Tech Stack
 
@@ -41,11 +41,11 @@ bookshelf/
 │   └── package.json
 ├── backend/           # Express API server
 │   ├── src/
+│   │   ├── modules/
+│   │   ├── utils/
 │   │   ├── server.ts
-│   │   ├── db.ts
 │   │   └── types.ts
 │   └── package.json
-├── docker-compose.yml # MySQL database configuration
 └── README.md
 ```
 
@@ -64,14 +64,7 @@ bookshelf/
    cd bookshelf
    ```
 
-2. **Set up backend environment**
-   ```bash
-   cd backend
-   cp .env.example .env
-   ```
-   Edit `.env` if you need to change database credentials (defaults match docker-compose.yml).
-
-4. **Install backend dependencies**
+2. **Install backend dependencies**
    ```bash
    cd backend
    npm install
@@ -88,14 +81,14 @@ bookshelf/
 1. **Start the backend server**
    ```bash
    cd backend
+   npm run dev
+   ```
+   The backend will run on `http://localhost:3001` and automatically create the SQLite database file at `backend/data/bookshelf.db`.
+
+   For production build:
+   ```bash
    npm run build
    npm start
-   ```
-   The backend will run on `http://localhost:3001` and automatically initialize the database schema.
-
-   For development with auto-reload:
-   ```bash
-   npm run dev
    ```
 
 2. **Start the frontend development server**

@@ -4,22 +4,57 @@ This guide covers deploying the Bookshelf backend with SQLite database.
 
 ## SQLite Benefits
 
-✅ **No separate database service needed** - embedded database
-✅ **Zero configuration** - works out of the box
-✅ **Free forever** - no database hosting costs
-✅ **Simple deployment** - just deploy the backend
+✅ **No separate database service needed** - embedded database  
+✅ **Zero configuration** - works out of the box  
+✅ **Free forever** - no database hosting costs  
+✅ **Simple deployment** - just deploy the backend  
 ✅ **Perfect for MVP** - fast and reliable
 
 ## Option 1: Render (Recommended - Free Tier Available)
 
 Render offers free tier hosting perfect for MVP deployment.
 
-### Step 1: Prepare Your Repository
+### Quick Setup (Using render.yaml)
 
-1. **Ensure your backend code is in a GitHub repository**
-2. **Make sure `backend/` folder is at the root of your repo**
+Since you have `render.yaml` in the `backend/` folder, you can use it as a reference for manual setup. The configuration is already defined, so you just need to copy the settings.
 
-### Step 2: Deploy to Render
+**Note**: Keeping `render.yaml` in `backend/` is good practice since it's backend-specific. Render Blueprints require it at the root, but manual setup is just as easy and keeps your repo organized.
+
+#### Step 1: Deploy to Render
+
+1. **Go to https://render.com and sign up/login**
+
+2. **Create Web Service**
+
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Configure (these match your `render.yaml`):
+     - **Name**: `bookshelf-backend`
+     - **Root Directory**: `backend`
+     - **Environment**: `Node`
+     - **Build Command**: `npm run build`
+     - **Start Command**: `npm start`
+     - **Plan**: **Free** (spins down after 15 min inactivity)
+
+3. **Add Environment Variables** (from your render.yaml)
+
+   ```
+   NODE_ENV=production
+   PORT=3001
+   DB_PATH=/opt/render/project/src/data/bookshelf.db
+   FRONTEND_URL=https://your-frontend.vercel.app
+   ```
+
+4. **Deploy**
+   - Click "Create Web Service"
+   - Render will build and deploy
+   - Get your backend URL: `https://your-backend.onrender.com`
+
+**That's it!** Your `render.yaml` serves as documentation and ensures consistent configuration.
+
+### Alternative: Automatic Blueprint Setup
+
+If you prefer automatic setup, you can move `render.yaml` to the root and use Render Blueprints. However, keeping it in `backend/` is better for organization since it's backend-specific.
 
 1. **Go to https://render.com and sign up/login**
 
@@ -31,7 +66,7 @@ Render offers free tier hosting perfect for MVP deployment.
      - **Name**: `bookshelf-backend`
      - **Root Directory**: `backend`
      - **Environment**: `Node`
-     - **Build Command**: `npm run build`\*\*
+     - **Build Command**: `npm run build`
      - **Start Command**: `npm start`
      - **Plan**: **Free** (spins down after 15 min inactivity)
 
@@ -192,7 +227,7 @@ The database file is created at the path specified in `DB_PATH` environment vari
 2. **Database Locked Error**
 
    - SQLite handles one write at a time (normal for low-traffic)
-   - If frequent, consider upgrading to MySQL/PostgreSQL
+   - This is expected behavior for SQLite
 
 3. **Data Lost After Restart**
 
@@ -270,16 +305,3 @@ For this project, **Render is recommended** because:
 - ✅ Simple setup (no database service needed)
 - ✅ Good for Node.js/Express apps
 - ✅ SQLite works perfectly on free tier
-
----
-
-## Migration Notes
-
-If you need to migrate to MySQL/PostgreSQL later:
-
-1. Export SQLite data
-2. Update connection code
-3. Import data to new database
-4. Update environment variables
-
-See `SQLITE_DEPLOYMENT.md` for more details.

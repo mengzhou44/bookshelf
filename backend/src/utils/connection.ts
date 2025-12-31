@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import fs from 'fs';
-import { config } from '../config.js';
+
 import path from 'path';
 import { fileURLToPath } from 'url';
 

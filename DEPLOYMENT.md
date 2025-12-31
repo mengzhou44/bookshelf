@@ -5,160 +5,289 @@ This guide covers deploying the Bookshelf app to Vercel.
 ## Architecture
 
 - **Frontend**: Deploy to Vercel (React + Vite)
-- **Backend**: Deploy separately (Railway, Render, or Vercel Serverless Functions)
-- **Database**: MySQL (Docker Compose locally, managed service in production)
+- **Backend**: Deploy separately (Render, Fly.io, or Railway)
+- **Database**: SQLite (embedded, no separate service needed)
 
-## Option 1: Frontend on Vercel + Backend on Railway/Render (Recommended)
+## Step 1: Deploy Backend First
 
-### Step 1: Deploy Backend
+### Option 1: Render (Recommended - Free Tier)
 
-#### Using Railway (Recommended)
+1. **Go to https://render.com and sign up/login**
 
-1. **Create Railway account** at https://railway.app
-2. **Create new project** → "Deploy from GitHub repo"
-3. **Add MySQL service**:
-   - Click "+ New" → "Database" → "MySQL"
-   - Railway will provide connection details
-4. **Deploy backend**:
-   - Click "+ New" → "GitHub Repo" → Select your backend
-   - Set root directory: `backend`
-   - Add environment variables:
-     ```
-     DB_HOST=<railway-mysql-host>
-     DB_PORT=3306
-     DB_USER=<railway-mysql-user>
-     DB_PASSWORD=<railway-mysql-password>
-     DB_NAME=railway
-     PORT=3001
-     NODE_ENV=production
-     ```
-   - Set build command: `npm run build`
-   - Set start command: `npm start`
-5. **Get backend URL** (e.g., `https://your-backend.railway.app`)
+2. **Create Web Service**
 
-#### Using Render
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Configure:
+     - **Name**: `bookshelf-backend`
+     - **Root Directory**: `backend`
+     - **Environment**: `Node`
+     - **Build Command**: `npm run build`
+     - **Start Command**: `npm start`
+     - **Plan**: **Free** (spins down after 15 min inactivity)
 
-1. **Create Render account** at https://render.com
-2. **Create Web Service**:
-   - Connect GitHub repo
-   - Root directory: `backend`
-   - Build command: `npm run build`
-   - Start command: `npm start`
-   - Add environment variables (same as Railway)
-3. **Create MySQL database**:
-   - New → PostgreSQL/MySQL → MySQL
-   - Use provided connection details
-4. **Get backend URL** (e.g., `https://your-backend.onrender.com`)
+3. **Add Environment Variables**
 
-### Step 2: Deploy Frontend to Vercel
+   ```
+   NODE_ENV=production
+   PORT=3001
+   DB_PATH=/opt/render/project/src/data/bookshelf.db
+   FRONTEND_URL=https://your-frontend.vercel.app
+   ```
 
-1. **Install Vercel CLI**:
+   (Update `FRONTEND_URL` after deploying frontend)
+
+4. **Deploy**
+
+   - Click "Create Web Service"
+   - Render will build and deploy
+   - Get your backend URL: `https://your-backend.onrender.com`
+
+5. **Test Backend**
+   - Visit: `https://your-backend.onrender.com/api/books`
+   - Should return `[]` (empty array)
+
+**Note**: Free tier services sleep after inactivity. First request after sleep takes ~30 seconds.
+
+### Option 2: Fly.io (Free Tier)
+
+1. **Install Fly CLI**:
+
+   ```bash
+   curl -L https://fly.io/install.sh | sh
+   ```
+
+2. **Login and Deploy**:
+
+   ```bash
+   fly auth login
+   cd backend
+   fly launch
+   ```
+
+3. **Create Volume** (for persistent storage):
+
+   ```bash
+   fly volumes create bookshelf_data --size 1
+   ```
+
+4. **Set Environment Variables**:
+
+   ```bash
+   fly secrets set DB_PATH=/data/bookshelf.db NODE_ENV=production PORT=3001
+   ```
+
+5. **Update fly.toml** to mount volume:
+
+   ```toml
+   [mounts]
+     source = "bookshelf_data"
+     destination = "/data"
+   ```
+
+6. **Deploy**:
+   ```bash
+   fly deploy
+   ```
+
+See `backend/DEPLOYMENT.md` for detailed backend deployment instructions.
+
+---
+
+## Step 2: Deploy Frontend to Vercel
+
+### Prerequisites
+
+- Backend deployed and running
+- Backend URL (e.g., `https://your-backend.onrender.com`)
+
+### Deployment Steps
+
+1. **Install Vercel CLI** (if not already installed):
+
    ```bash
    npm i -g vercel
    ```
 
-2. **Deploy from frontend directory**:
+2. **Login to Vercel**:
+
+   ```bash
+   vercel login
+   ```
+
+3. **Navigate to Frontend Directory**:
+
    ```bash
    cd frontend
+   ```
+
+4. **Deploy to Vercel**:
+
+   ```bash
    vercel
    ```
 
-3. **Set environment variables** in Vercel dashboard:
-   - Go to your project → Settings → Environment Variables
-   - Add: `VITE_API_URL` = `https://your-backend-url.com/api`
+   - Follow the prompts
+   - Link to existing project or create new
+   - Confirm settings
 
-4. **Redeploy** after adding environment variables:
+5. **Set Environment Variable**:
+
+   - Go to Vercel Dashboard: https://vercel.com/dashboard
+   - Select your project
+   - Go to **Settings** → **Environment Variables**
+   - Add:
+     - **Name**: `VITE_API_URL`
+     - **Value**: `https://your-backend.onrender.com/api`
+     - **Environment**: Production, Preview, Development (select all)
+   - Click **Save**
+
+6. **Redeploy** (to apply environment variable):
    ```bash
    vercel --prod
    ```
+   Or trigger redeploy from Vercel dashboard
 
-## Option 2: Full Stack on Vercel (Serverless Functions)
+### Alternative: Deploy via Vercel Dashboard
 
-### Convert Backend to Vercel Serverless Functions
+1. **Go to https://vercel.com**
+2. **Click "Add New..." → "Project"**
+3. **Import Git Repository**:
+   - Connect your GitHub account
+   - Select your `bookshelf` repository
+4. **Configure Project**:
+   - **Framework Preset**: Vite
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+5. **Add Environment Variable**:
+   - **VITE_API_URL** = `https://your-backend.onrender.com/api`
+6. **Deploy**
 
-1. **Create API directory in frontend**:
-   ```bash
-   mkdir -p frontend/api/books
-   ```
+---
 
-2. **Convert routes to serverless functions**:
-   - Each route becomes a file in `frontend/api/`
-   - Example: `frontend/api/books/index.ts` for GET `/api/books`
-   - Example: `frontend/api/books/[id].ts` for GET `/api/books/:id`
+## Step 3: Update Backend CORS
 
-3. **Deploy to Vercel**:
-   ```bash
-   cd frontend
-   vercel
-   ```
+After deploying frontend, update backend `FRONTEND_URL`:
 
-### Example Serverless Function Structure
+1. **Go to Render/Fly.io dashboard**
+2. **Update Environment Variable**:
+   - `FRONTEND_URL` = `https://your-frontend.vercel.app`
+3. **Redeploy backend** (or it will auto-redeploy)
 
-```
-frontend/
-├── api/
-│   └── books/
-│       ├── index.ts          # GET, POST /api/books
-│       └── [id].ts            # GET, PUT, DELETE /api/books/:id
-├── src/
-└── ...
-```
-
-## Option 3: Use Vercel with External Backend
-
-1. **Deploy frontend to Vercel** (same as Option 1, Step 2)
-2. **Deploy backend separately** (Railway/Render)
-3. **Configure CORS** in backend to allow Vercel domain
-4. **Set `VITE_API_URL`** in Vercel environment variables
+---
 
 ## Environment Variables
 
 ### Frontend (Vercel)
-- `VITE_API_URL` - Backend API URL (e.g., `https://your-backend.railway.app/api`)
 
-### Backend (Railway/Render)
-- `DB_HOST` - MySQL host
-- `DB_PORT` - MySQL port (usually 3306)
-- `DB_USER` - MySQL username
-- `DB_PASSWORD` - MySQL password
-- `DB_NAME` - MySQL database name
-- `PORT` - Backend server port
+- `VITE_API_URL` - Backend API URL (e.g., `https://your-backend.onrender.com/api`)
+
+### Backend (Render/Fly.io)
+
 - `NODE_ENV` - `production`
+- `PORT` - `3001`
+- `DB_PATH` - SQLite database file path
+- `FRONTEND_URL` - Your Vercel frontend URL (for CORS)
 
-## Database Migration
+---
 
-After deploying, you need to initialize the database schema:
+## Testing Deployment
 
-1. **Connect to production database** (via DBeaver or CLI)
-2. **Run the schema creation** (happens automatically on first backend start)
-3. **Or manually run**:
-   ```sql
-   CREATE TABLE IF NOT EXISTS books (
-     id VARCHAR(255) PRIMARY KEY,
-     title VARCHAR(255) NOT NULL,
-     author VARCHAR(255) NOT NULL,
-     status ENUM('Read', 'Reading', 'Not Read') NOT NULL,
-     notes TEXT,
-     createdAt DATETIME NOT NULL,
-     updatedAt DATETIME NOT NULL
-   );
+1. **Test Backend**:
+
+   ```bash
+   curl https://your-backend.onrender.com/api/books
    ```
 
-## CORS Configuration
+   Should return: `[]`
 
-If frontend and backend are on different domains, update backend CORS:
+2. **Test Frontend**:
 
-```typescript
-// backend/src/server.ts
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
-}));
-```
+   - Visit: `https://your-frontend.vercel.app`
+   - Should load the app
+   - Try adding a book
+
+3. **Check Browser Console**:
+   - Open DevTools (F12)
+   - Check for any API errors
+   - Verify API calls are going to correct backend URL
+
+---
+
+## Troubleshooting
+
+### Frontend Can't Connect to Backend
+
+1. **Check `VITE_API_URL`**:
+
+   - Verify it's set in Vercel dashboard
+   - Format: `https://your-backend.onrender.com/api` (no trailing slash)
+   - Redeploy frontend after adding
+
+2. **Check CORS**:
+
+   - Verify `FRONTEND_URL` is set in backend
+   - Should match your Vercel domain exactly
+
+3. **Check Backend Logs**:
+   - Render: Go to service → Logs
+   - Fly.io: `fly logs`
+
+### Backend Not Responding
+
+1. **Check if service is awake**:
+
+   - Free tier services sleep after inactivity
+   - First request takes ~30 seconds
+   - Subsequent requests are fast
+
+2. **Check deployment logs**:
+   - Look for errors in build/start process
+   - Verify database file is created
+
+### Database Issues
+
+1. **SQLite file not persisting**:
+
+   - Free tier: File may be lost on restart
+   - Solution: Use persistent volumes (paid plans) or backup strategy
+
+2. **Database locked**:
+   - Normal for SQLite (handles one write at a time)
+   - For high traffic, consider migrating to MySQL/PostgreSQL
+
+---
+
+## Cost Summary
+
+### Free Tier (MVP)
+
+- **Frontend (Vercel)**: Free
+- **Backend (Render)**: Free (spins down after inactivity)
+- **Database (SQLite)**: Free (embedded)
+- **Total**: $0/month
+
+### Production (Always On)
+
+- **Frontend (Vercel)**: Free (or Pro $20/month)
+- **Backend (Render)**: $7/month (Starter plan)
+- **Database (SQLite)**: Free (embedded)
+- **Total**: ~$7/month
+
+---
 
 ## Quick Deploy Commands
 
+### Backend (Render)
+
+```bash
+# Deploy via Render dashboard (GitHub integration)
+# Or use Render API/CLI
+```
+
 ### Frontend (Vercel)
+
 ```bash
 cd frontend
 vercel login
@@ -166,31 +295,32 @@ vercel
 vercel --prod  # Production deployment
 ```
 
-### Backend (Railway)
-```bash
-# Connect via Railway dashboard or CLI
-railway login
-railway init
-railway up
-```
-
-## Troubleshooting
-
-1. **API calls failing**: Check `VITE_API_URL` is set correctly
-2. **CORS errors**: Update backend CORS to include Vercel domain
-3. **Database connection**: Verify environment variables in backend
-4. **Build errors**: Check Node.js version compatibility
+---
 
 ## Recommended Setup
 
-For MVP, I recommend **Option 1**:
-- Frontend: Vercel (free tier, great for React)
-- Backend: Railway (free tier, easy MySQL setup)
-- Database: Railway MySQL (included)
+For MVP:
+
+- ✅ **Frontend**: Vercel (free, great for React)
+- ✅ **Backend**: Render (free tier, easy setup)
+- ✅ **Database**: SQLite (embedded, free)
 
 This gives you:
+
 - ✅ Fast frontend deployment
-- ✅ Easy backend deployment
-- ✅ Managed database
+- ✅ Simple backend deployment
+- ✅ No database service needed
 - ✅ Free tier available
 
+---
+
+## Next Steps
+
+1. ✅ Deploy backend to Render
+2. ✅ Get backend URL
+3. ✅ Deploy frontend to Vercel
+4. ✅ Set `VITE_API_URL` in Vercel
+5. ✅ Update `FRONTEND_URL` in backend
+6. ✅ Test the full stack
+
+Your Bookshelf app is now live! 🎉
