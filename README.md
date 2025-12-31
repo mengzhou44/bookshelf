@@ -12,6 +12,7 @@ A minimal, clean, and responsive web application for tracking your books and rea
 - ✅ Delete books
 - ✅ Color-coded status badges (Read → Green, Reading → Blue, Not Read → Gray)
 - ✅ Clean, minimal UI with Tailwind CSS
+- ✅ MySQL database with Docker Compose
 
 ## Tech Stack
 
@@ -25,7 +26,7 @@ A minimal, clean, and responsive web application for tracking your books and rea
 - Node.js
 - Express
 - TypeScript
-- JSON file storage
+- MySQL 8.0 (Dockerized)
 
 ## Project Structure
 
@@ -41,8 +42,10 @@ bookshelf/
 ├── backend/           # Express API server
 │   ├── src/
 │   │   ├── server.ts
+│   │   ├── db.ts
 │   │   └── types.ts
 │   └── package.json
+├── docker-compose.yml # MySQL database configuration
 └── README.md
 ```
 
@@ -52,6 +55,7 @@ bookshelf/
 
 - Node.js (v18 or higher)
 - npm or yarn
+- Docker and Docker Compose
 
 ### Installation
 
@@ -61,13 +65,26 @@ bookshelf/
    cd bookshelf
    ```
 
-2. **Install backend dependencies**
+2. **Start the MySQL database**
+   ```bash
+   docker-compose up -d
+   ```
+   This will start MySQL in a Docker container on port 3306.
+
+3. **Set up backend environment**
+   ```bash
+   cd backend
+   cp .env.example .env
+   ```
+   Edit `.env` if you need to change database credentials (defaults match docker-compose.yml).
+
+4. **Install backend dependencies**
    ```bash
    cd backend
    npm install
    ```
 
-3. **Install frontend dependencies**
+5. **Install frontend dependencies**
    ```bash
    cd ../frontend
    npm install
@@ -81,7 +98,7 @@ bookshelf/
    npm run build
    npm start
    ```
-   The backend will run on `http://localhost:3001`
+   The backend will run on `http://localhost:3001` and automatically initialize the database schema.
 
    For development with auto-reload:
    ```bash
@@ -97,6 +114,28 @@ bookshelf/
 
 3. **Open your browser**
    Navigate to `http://localhost:5173` to see the application.
+
+### Database Management
+
+**Stop the database:**
+```bash
+docker-compose down
+```
+
+**Stop and remove all data:**
+```bash
+docker-compose down -v
+```
+
+**View database logs:**
+```bash
+docker-compose logs mysql
+```
+
+**Access MySQL CLI:**
+```bash
+docker exec -it bookshelf-db mysql -u bookshelf_user -pbookshelf_password bookshelf
+```
 
 ## API Endpoints
 
@@ -148,6 +187,18 @@ Update a book.
 ### DELETE `/api/books/:id`
 Delete a book.
 
+## Database Schema
+
+The database automatically creates a `books` table with the following structure:
+
+- `id` (VARCHAR) - Primary key
+- `title` (VARCHAR) - Book title
+- `author` (VARCHAR) - Book author
+- `status` (ENUM) - Reading status: 'Read', 'Reading', 'Not Read'
+- `notes` (TEXT) - Optional notes
+- `createdAt` (DATETIME) - Creation timestamp
+- `updatedAt` (DATETIME) - Last update timestamp
+
 ## Deployment to Vercel
 
 ### Frontend Deployment
@@ -174,25 +225,29 @@ For the backend, you have a few options:
 
 **Option 1: Deploy backend separately (Recommended)**
 - Deploy backend to a service like Railway, Render, or Heroku
+- Set up MySQL database on the same service or use a managed MySQL service
 - Update `VITE_API_URL` in frontend to point to your backend URL
 
 **Option 2: Use Vercel Serverless Functions**
 - Create `api/` directory in frontend
 - Convert Express routes to Vercel serverless functions
+- Use a managed MySQL service (e.g., PlanetScale, AWS RDS)
 - Deploy everything together on Vercel
 
 **Option 3: Use Vercel with external backend**
 - Keep backend on a separate service
 - Configure CORS to allow frontend domain
+- Use managed MySQL service
 
-### Example: Deploying Backend to Railway
+### Database Deployment
 
-1. Create a `railway.json` or use Railway's dashboard
-2. Set build command: `npm run build`
-3. Set start command: `npm start`
-4. Add environment variable: `PORT=3001`
-5. Deploy and get your backend URL
-6. Update frontend `VITE_API_URL` to your Railway backend URL
+For production, consider using a managed MySQL service:
+- **PlanetScale** - Serverless MySQL
+- **AWS RDS** - Managed MySQL
+- **Google Cloud SQL** - Managed MySQL
+- **Railway** - Includes MySQL addon
+
+Update your backend `.env` file with production database credentials.
 
 ## Development
 
@@ -214,4 +269,3 @@ ISC
 ## Contributing
 
 Feel free to submit issues and enhancement requests!
-
