@@ -1,4 +1,4 @@
-import { Book, CreateBookRequest, UpdateBookRequest } from '../types.js';
+import { Book, CreateBookRequest, UpdateBookRequest } from '../../types.js';
 import * as bookRepository from './book.repository.js';
 
 // Business logic layer - handles validation and business rules

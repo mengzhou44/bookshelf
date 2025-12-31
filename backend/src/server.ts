@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config.js';
 import { initDatabase } from './utils/connection.js';
-import bookRoutes from './book/book.routes.js';
+import bookRoutes from './modules/book/book.routes.js';
 
 const app = express();
 

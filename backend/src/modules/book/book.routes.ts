@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { Book, CreateBookRequest, UpdateBookRequest } from '../types.js';
+import { Book, CreateBookRequest, UpdateBookRequest } from '../../types.js';
 import * as bookService from './book.service.js';
 
 const router = Router();
