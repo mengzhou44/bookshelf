@@ -26,7 +26,7 @@ A minimal, clean, and responsive web application for tracking your books and rea
 - Node.js
 - Express
 - TypeScript
-- MySQL 8.0 (Dockerized)
+- SQLite (Embedded database)
 
 ## Project Structure
 
@@ -55,7 +55,6 @@ bookshelf/
 
 - Node.js (v18 or higher)
 - npm or yarn
-- Docker and Docker Compose
 
 ### Installation
 
@@ -65,13 +64,7 @@ bookshelf/
    cd bookshelf
    ```
 
-2. **Start the MySQL database**
-   ```bash
-   docker-compose up -d
-   ```
-   This will start MySQL in a Docker container on port 3306.
-
-3. **Set up backend environment**
+2. **Set up backend environment**
    ```bash
    cd backend
    cp .env.example .env
@@ -117,24 +110,20 @@ bookshelf/
 
 ### Database Management
 
-**Stop the database:**
+**SQLite database file location:**
+- Local: `backend/data/bookshelf.db`
+- Created automatically on first run
+
+**Backup database:**
 ```bash
-docker-compose down
+cp backend/data/bookshelf.db backend/data/bookshelf.db.backup
 ```
 
-**Stop and remove all data:**
+**View database:**
 ```bash
-docker-compose down -v
-```
-
-**View database logs:**
-```bash
-docker-compose logs mysql
-```
-
-**Access MySQL CLI:**
-```bash
-docker exec -it bookshelf-db mysql -u bookshelf_user -pbookshelf_password bookshelf
+sqlite3 backend/data/bookshelf.db
+.tables
+SELECT * FROM books;
 ```
 
 ## API Endpoints
@@ -189,15 +178,15 @@ Delete a book.
 
 ## Database Schema
 
-The database automatically creates a `books` table with the following structure:
+The SQLite database automatically creates a `books` table with the following structure:
 
-- `id` (VARCHAR) - Primary key
-- `title` (VARCHAR) - Book title
-- `author` (VARCHAR) - Book author
-- `status` (ENUM) - Reading status: 'Read', 'Reading', 'Not Read'
+- `id` (TEXT) - Primary key
+- `title` (TEXT) - Book title
+- `author` (TEXT) - Book author
+- `status` (TEXT) - Reading status: 'Read', 'Reading', 'Not Read'
 - `notes` (TEXT) - Optional notes
-- `createdAt` (DATETIME) - Creation timestamp
-- `updatedAt` (DATETIME) - Last update timestamp
+- `createdAt` (TEXT) - Creation timestamp (ISO string)
+- `updatedAt` (TEXT) - Last update timestamp (ISO string)
 
 ## Deployment to Vercel
 
@@ -223,31 +212,32 @@ The database automatically creates a `books` table with the following structure:
 
 For the backend, you have a few options:
 
-**Option 1: Deploy backend separately (Recommended)**
-- Deploy backend to a service like Railway, Render, or Heroku
-- Set up MySQL database on the same service or use a managed MySQL service
+**Option 1: Deploy to Render (Recommended)**
+- Deploy backend to Render (free tier available)
+- SQLite database file is included with backend
+- No separate database service needed
 - Update `VITE_API_URL` in frontend to point to your backend URL
 
-**Option 2: Use Vercel Serverless Functions**
-- Create `api/` directory in frontend
-- Convert Express routes to Vercel serverless functions
-- Use a managed MySQL service (e.g., PlanetScale, AWS RDS)
-- Deploy everything together on Vercel
+**Option 2: Deploy to Fly.io**
+- Deploy backend to Fly.io (free tier available)
+- Use persistent volume for database file
+- Simple and reliable
 
-**Option 3: Use Vercel with external backend**
-- Keep backend on a separate service
-- Configure CORS to allow frontend domain
-- Use managed MySQL service
+**Option 3: Deploy to Railway**
+- Deploy backend to Railway
+- Use persistent volume for database file
+- Good for production
 
 ### Database Deployment
 
-For production, consider using a managed MySQL service:
-- **PlanetScale** - Serverless MySQL
-- **AWS RDS** - Managed MySQL
-- **Google Cloud SQL** - Managed MySQL
-- **Railway** - Includes MySQL addon
+SQLite is embedded - no separate database deployment needed!
 
-Update your backend `.env` file with production database credentials.
+- ✅ Database file is included with backend
+- ✅ No database service required
+- ✅ Free forever
+- ✅ Perfect for MVP
+
+For production with high traffic, consider migrating to MySQL/PostgreSQL later.
 
 ## Development
 

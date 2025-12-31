@@ -1,99 +1,29 @@
 # Backend Deployment Guide
 
-This guide covers deploying the Bookshelf backend with MySQL database.
+This guide covers deploying the Bookshelf backend with SQLite database.
 
-## Option 1: Railway (Recommended - Easiest)
+## SQLite Benefits
 
-Railway makes it easy to deploy both backend and MySQL together.
+✅ **No separate database service needed** - embedded database
+✅ **Zero configuration** - works out of the box
+✅ **Free forever** - no database hosting costs
+✅ **Simple deployment** - just deploy the backend
+✅ **Perfect for MVP** - fast and reliable
+
+## Option 1: Render (Recommended - Free Tier Available)
+
+Render offers free tier hosting perfect for MVP deployment.
 
 ### Step 1: Prepare Your Repository
 
 1. **Ensure your backend code is in a GitHub repository**
 2. **Make sure `backend/` folder is at the root of your repo**
 
-### Step 2: Deploy to Railway
-
-1. **Go to https://railway.app and sign up/login**
-
-2. **Create New Project**
-
-   - Click "New Project"
-   - Select "Deploy from GitHub repo"
-   - Choose your repository
-
-3. **Add MySQL Database**
-
-   - In your project, click "+ New"
-   - Select "Database" → "Add MySQL"
-   - Railway will automatically create a MySQL database
-   - **Note the connection details** (you'll need them)
-
-4. **Deploy Backend Service**
-
-   - Click "+ New" → "GitHub Repo"
-   - Select your repository again
-   - Railway will detect it's a Node.js project
-   - **Set Root Directory**: `backend`
-   - **Set Build Command**: `npm run build`
-   - **Set Start Command**: `npm start`
-
-5. **Configure Environment Variables**
-
-   - Click on your backend service
-   - Go to "Variables" tab
-   - Add these variables (get values from MySQL service):
-     ```
-     DB_HOST=<from MySQL service>
-     DB_PORT=3306
-     DB_USER=<from MySQL service>
-     DB_PASSWORD=<from MySQL service>
-     DB_NAME=railway
-     PORT=3001
-     NODE_ENV=production
-     FRONTEND_URL=https://your-frontend.vercel.app
-     ```
-   - Railway provides these in the MySQL service's "Variables" tab
-
-6. **Link MySQL to Backend**
-
-   - In backend service → "Variables" tab
-   - Click "Reference Variable"
-   - Select MySQL service variables (Railway will auto-link them)
-
-7. **Deploy**
-
-   - Railway will automatically deploy when you push to GitHub
-   - Or click "Deploy" button
-   - Wait for deployment to complete
-
-8. **Get Your Backend URL**
-   - Once deployed, Railway provides a URL like: `https://your-backend.railway.app`
-   - This is your backend API URL
-
-### Step 3: Test Your Backend
-
-1. **Check deployment logs** in Railway dashboard
-2. **Test API endpoint**: `https://your-backend.railway.app/api/books`
-3. **Database is automatically initialized** on first start (creates `books` table)
-
----
-
-## Option 2: Render
-
-### Step 1: Deploy MySQL Database
+### Step 2: Deploy to Render
 
 1. **Go to https://render.com and sign up/login**
 
-2. **Create MySQL Database**
-   - Click "New +" → "PostgreSQL" (Render uses PostgreSQL, but we can use MySQL)
-   - Actually, Render offers **MySQL** as well
-   - Select "MySQL"
-   - Choose plan (Free tier available)
-   - Note connection details
-
-### Step 2: Deploy Backend
-
-1. **Create Web Service**
+2. **Create Web Service**
 
    - Click "New +" → "Web Service"
    - Connect your GitHub repository
@@ -101,46 +31,105 @@ Railway makes it easy to deploy both backend and MySQL together.
      - **Name**: `bookshelf-backend`
      - **Root Directory**: `backend`
      - **Environment**: `Node`
-     - **Build Command**: `npm run build`
+     - **Build Command**: `npm run build`\*\*
      - **Start Command**: `npm start`
+     - **Plan**: **Free** (spins down after 15 min inactivity)
 
-2. **Add Environment Variables**
+3. **Add Environment Variables**
 
    ```
-   DB_HOST=<from MySQL database>
-   DB_PORT=3306
-   DB_USER=<from MySQL database>
-   DB_PASSWORD=<from MySQL database>
-   DB_NAME=<from MySQL database>
-   PORT=3001
    NODE_ENV=production
+   PORT=3001
+   DB_PATH=/opt/render/project/src/data/bookshelf.db
    FRONTEND_URL=https://your-frontend.vercel.app
    ```
 
-3. **Deploy**
+4. **Deploy**
    - Click "Create Web Service"
    - Render will build and deploy
    - Get your backend URL: `https://your-backend.onrender.com`
 
+### Step 3: Test Your Backend
+
+1. **Check deployment logs** in Render dashboard
+2. **Test API endpoint**: `https://your-backend.onrender.com/api/books`
+3. **Database is automatically initialized** on first start (creates `books` table)
+
+**Note**: Free tier services sleep after inactivity. First request after sleep takes ~30 seconds.
+
 ---
 
-## Option 3: Fly.io
+## Option 2: Fly.io (Free Tier Available)
 
-1. **Install Fly CLI**: `curl -L https://fly.io/install.sh | sh`
+Fly.io offers a generous free tier with persistent storage.
 
-2. **Login**: `fly auth login`
+### Step 1: Install Fly CLI
 
-3. **Create App**: `fly launch` (in backend directory)
+```bash
+curl -L https://fly.io/install.sh | sh
+# Or on Windows: iwr https://fly.io/install.ps1 -useb | iex
+```
 
-4. **Add MySQL**: Use Fly's MySQL addon or external service
+### Step 2: Login and Setup
 
-5. **Set Secrets**:
+```bash
+fly auth login
+cd backend
+fly launch
+```
 
-   ```bash
-   fly secrets set DB_HOST=... DB_PORT=3306 DB_USER=... DB_PASSWORD=... DB_NAME=... NODE_ENV=production
+### Step 3: Create Volume for Database
+
+```bash
+fly volumes create bookshelf_data --size 1
+```
+
+### Step 4: Update fly.toml
+
+Add volume mount:
+
+```toml
+[mounts]
+  source = "bookshelf_data"
+  destination = "/data"
+```
+
+### Step 5: Set Environment Variables
+
+```bash
+fly secrets set DB_PATH=/data/bookshelf.db NODE_ENV=production PORT=3001
+```
+
+### Step 6: Deploy
+
+```bash
+fly deploy
+```
+
+---
+
+## Option 3: Railway (Paid)
+
+Railway supports SQLite with persistent volumes.
+
+1. **Deploy Backend Service**
+
+   - New Project → Deploy from GitHub
+   - Root Directory: `backend`
+   - Build: `npm run build`
+   - Start: `npm start`
+
+2. **Add Volume** (for persistent storage)
+
+   - Add volume in Railway dashboard
+   - Mount to `/data`
+
+3. **Set Environment Variables**
    ```
-
-6. **Deploy**: `fly deploy`
+   DB_PATH=/data/bookshelf.db
+   NODE_ENV=production
+   PORT=3001
+   ```
 
 ---
 
@@ -149,12 +138,9 @@ Railway makes it easy to deploy both backend and MySQL together.
 Required environment variables for backend:
 
 ```bash
-# Database
-DB_HOST=your-mysql-host
-DB_PORT=3306
-DB_USER=your-mysql-user
-DB_PASSWORD=your-mysql-password
-DB_NAME=your-database-name
+# Database (SQLite)
+DB_PATH=./data/bookshelf.db  # Local development
+# Or for production: /opt/render/project/src/data/bookshelf.db
 
 # Server
 PORT=3001
@@ -170,19 +156,7 @@ FRONTEND_URL=https://your-frontend.vercel.app
 
 The backend automatically creates the `books` table on first startup via `initDatabase()` function in `utils/connection.ts`.
 
-If you need to manually initialize:
-
-```sql
-CREATE TABLE IF NOT EXISTS books (
-  id VARCHAR(255) PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  author VARCHAR(255) NOT NULL,
-  status ENUM('Read', 'Reading', 'Not Read') NOT NULL,
-  notes TEXT,
-  createdAt DATETIME NOT NULL,
-  updatedAt DATETIME NOT NULL
-);
-```
+The database file is created at the path specified in `DB_PATH` environment variable.
 
 ---
 
@@ -209,25 +183,69 @@ CREATE TABLE IF NOT EXISTS books (
 
 ## Troubleshooting
 
-1. **Database Connection Failed**
+1. **Database File Not Found**
 
-   - Verify all DB\_\* environment variables are correct
-   - Check if MySQL service is running
-   - Verify network connectivity
+   - Verify `DB_PATH` environment variable is set correctly
+   - Check if directory exists (backend creates it automatically)
+   - Verify file permissions
 
-2. **Table Creation Failed**
+2. **Database Locked Error**
 
-   - Check database permissions
-   - Verify user has CREATE TABLE permission
+   - SQLite handles one write at a time (normal for low-traffic)
+   - If frequent, consider upgrading to MySQL/PostgreSQL
 
-3. **CORS Errors**
+3. **Data Lost After Restart**
+
+   - Free tier services may not persist files
+   - Use persistent volumes (paid plans) or implement backup strategy
+
+4. **CORS Errors**
 
    - Ensure `FRONTEND_URL` is set correctly
    - Check backend CORS configuration
 
-4. **Build Errors**
+5. **Build Errors**
    - Ensure `npm run build` completes successfully
    - Check TypeScript compilation errors
+
+---
+
+## File Persistence
+
+### Free Tier Services
+
+- Database file persists during service lifetime
+- May be lost on service restart/redeploy
+- Perfect for MVP/testing
+
+### Production (Paid Plans)
+
+- Use persistent volumes for guaranteed file persistence
+- Database file survives restarts and redeployments
+- Recommended for production
+
+---
+
+## Backup Strategy
+
+Since SQLite is file-based:
+
+1. **Regular Backups**: Copy `bookshelf.db` file
+2. **Export Data**: Use SQLite tools to export
+3. **Version Control**: Don't commit `.db` files (already in .gitignore)
+
+### Backup Commands
+
+```bash
+# Backup database
+cp backend/data/bookshelf.db backend/data/bookshelf.db.backup
+
+# Export to SQL
+sqlite3 backend/data/bookshelf.db .dump > backup.sql
+
+# Restore from SQL
+sqlite3 backend/data/bookshelf.db < backup.sql
+```
 
 ---
 
@@ -235,19 +253,33 @@ CREATE TABLE IF NOT EXISTS books (
 
 After backend is deployed:
 
-1. **Get your backend URL** (e.g., `https://your-backend.railway.app`)
+1. **Get your backend URL** (e.g., `https://your-backend.onrender.com`)
 2. **Test the API** to ensure it's working
 3. **Deploy frontend** to Vercel (see main DEPLOYMENT.md)
 4. **Set `VITE_API_URL`** in Vercel to point to your backend
 
 ---
 
-## Recommended: Railway
+## Recommended: Render
 
-For this project, **Railway is recommended** because:
+For this project, **Render is recommended** because:
 
-- ✅ Easy MySQL setup (one click)
-- ✅ Automatic environment variable linking
-- ✅ Free tier available
-- ✅ Simple deployment process
+- ✅ Free tier available (perfect for MVP)
+- ✅ Easy GitHub integration
+- ✅ Automatic deployments
+- ✅ Simple setup (no database service needed)
 - ✅ Good for Node.js/Express apps
+- ✅ SQLite works perfectly on free tier
+
+---
+
+## Migration Notes
+
+If you need to migrate to MySQL/PostgreSQL later:
+
+1. Export SQLite data
+2. Update connection code
+3. Import data to new database
+4. Update environment variables
+
+See `SQLITE_DEPLOYMENT.md` for more details.

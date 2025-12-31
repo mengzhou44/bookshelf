@@ -1,37 +1,40 @@
-import mysql from 'mysql2/promise';
+import Database from 'better-sqlite3';
+import fs from 'fs';
 import { config } from '../config.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const poolConfig: mysql.PoolOptions = {
-    host: config.db.host,
-    port: config.db.port,
-    user: config.db.user,
-    password: config.db.password,
-    database: config.db.name,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Only allow public key retrieval in development (for local MySQL connections)
-// This is a security risk in production, so we only enable it locally
-if (config.env === 'development') {
-    (poolConfig as any).allowPublicKeyRetrieval = true;
+// SQLite database file path
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'data', 'bookshelf.db');
+
+// Ensure data directory exists
+const dataDir = path.dirname(dbPath);
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const pool = mysql.createPool(poolConfig);
+// Create database connection
+const db: Database.Database = new Database(dbPath);
+
+// Enable foreign keys and other SQLite optimizations
+db.pragma('journal_mode = WAL'); // Write-Ahead Logging for better concurrency
+db.pragma('foreign_keys = ON');
 
 // Initialize database schema
 export const initDatabase = async (): Promise<void> => {
     try {
-        await pool.execute(`
+        db.exec(`
       CREATE TABLE IF NOT EXISTS books (
-        id VARCHAR(255) PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        author VARCHAR(255) NOT NULL,
-        status ENUM('Read', 'Reading', 'Not Read') NOT NULL,
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        author TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('Read', 'Reading', 'Not Read')),
         notes TEXT,
-        createdAt DATETIME NOT NULL,
-        updatedAt DATETIME NOT NULL
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
       )
     `);
         console.log('Database schema initialized successfully');
@@ -41,5 +44,4 @@ export const initDatabase = async (): Promise<void> => {
     }
 };
 
-export default pool;
-
+export default db;

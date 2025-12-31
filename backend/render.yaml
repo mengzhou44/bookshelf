@@ -10,21 +10,7 @@ services:
         value: production
       - key: PORT
         value: 3001
-      - key: DB_HOST
-        sync: false
-      - key: DB_PORT
-        value: 3306
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_NAME
-        sync: false
+      - key: DB_PATH
+        value: /opt/render/project/src/data/bookshelf.db
       - key: FRONTEND_URL
         sync: false
-
-databases:
-  - name: bookshelf-db
-    databaseName: bookshelf
-    user: bookshelf_user
-    plan: free

@@ -1,53 +1,45 @@
-import mysql from 'mysql2/promise';
 import { Book } from '../../types.js';
-import pool from '../../utils/connection.js';
+import db from '../../utils/connection.js';
 
 // Book repository - handles all database operations
 export const getAllBooks = async (): Promise<Book[]> => {
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(
-        'SELECT * FROM books ORDER BY createdAt DESC'
-    );
+    const rows = db.prepare('SELECT * FROM books ORDER BY createdAt DESC').all() as any[];
     return rows.map(row => ({
         id: row.id,
         title: row.title,
         author: row.author,
         status: row.status as Book['status'],
         notes: row.notes || '',
-        createdAt: new Date(row.createdAt).toISOString(),
-        updatedAt: new Date(row.updatedAt).toISOString()
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
     }));
 };
 
 export const getBookById = async (id: string): Promise<Book | null> => {
-    const [rows] = await pool.execute<mysql.RowDataPacket[]>(
-        'SELECT * FROM books WHERE id = ?',
-        [id]
-    );
-    if (rows.length === 0) return null;
-    const row = rows[0];
+    const row = db.prepare('SELECT * FROM books WHERE id = ?').get(id) as any;
+    if (!row) return null;
     return {
         id: row.id,
         title: row.title,
         author: row.author,
         status: row.status as Book['status'],
         notes: row.notes || '',
-        createdAt: new Date(row.createdAt).toISOString(),
-        updatedAt: new Date(row.updatedAt).toISOString()
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
     };
 };
 
 export const createBook = async (book: Book): Promise<Book> => {
-    await pool.execute(
-        'INSERT INTO books (id, title, author, status, notes, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [
-            book.id,
-            book.title,
-            book.author,
-            book.status,
-            book.notes || '',
-            new Date(book.createdAt),
-            new Date(book.updatedAt)
-        ]
+    db.prepare(
+        'INSERT INTO books (id, title, author, status, notes, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+        book.id,
+        book.title,
+        book.author,
+        book.status,
+        book.notes || '',
+        book.createdAt,
+        book.updatedAt
     );
     return book;
 };
@@ -78,22 +70,15 @@ export const updateBook = async (id: string, updates: Partial<Book>): Promise<Bo
     }
 
     setClause.push('updatedAt = ?');
-    values.push(new Date());
+    values.push(new Date().toISOString());
     values.push(id);
 
-    await pool.execute(
-        `UPDATE books SET ${setClause.join(', ')} WHERE id = ?`,
-        values
-    );
+    db.prepare(`UPDATE books SET ${setClause.join(', ')} WHERE id = ?`).run(...values);
 
     return getBookById(id);
 };
 
 export const deleteBook = async (id: string): Promise<boolean> => {
-    const [result] = await pool.execute<mysql.ResultSetHeader>(
-        'DELETE FROM books WHERE id = ?',
-        [id]
-    );
-    return result.affectedRows > 0;
+    const result = db.prepare('DELETE FROM books WHERE id = ?').run(id);
+    return result.changes > 0;
 };
-
