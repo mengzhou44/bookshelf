@@ -2,9 +2,9 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { Book, CreateBookRequest, UpdateBookRequest } from './types.js';
 import { initDatabase, getAllBooks, getBookById, createBook, updateBook, deleteBook } from './db.js';
+import { config } from './config.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
@@ -94,8 +94,8 @@ app.delete('/api/books/:id', async (req: Request<{ id: string }>, res: Response)
 const startServer = async () => {
     try {
         await initDatabase();
-        app.listen(PORT, () => {
-            console.log(`Server is running on http://localhost:${PORT}`);
+        app.listen(config.server.port, () => {
+            console.log(`Server is running on http://localhost:${config.server.port}`);
         });
     } catch (error) {
         console.error('Failed to start server:', error);
