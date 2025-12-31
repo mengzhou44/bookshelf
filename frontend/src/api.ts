@@ -1,6 +1,7 @@
 import { Book } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// Remove trailing slash if present to avoid double slashes
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 export const fetchBooks = async (): Promise<Book[]> => {
   const response = await fetch(`${API_BASE_URL}/books`);
