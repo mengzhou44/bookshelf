@@ -11,7 +11,8 @@ router.get('/', async (_req: Request, res: Response) => {
         res.json(books);
     } catch (error) {
         console.error('Error fetching books:', error);
-        res.status(500).json({ error: 'Failed to fetch books' });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ error: 'Failed to fetch books', details: errorMessage });
     }
 });
 
@@ -32,14 +33,22 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/books - Create a new book
 router.post('/', async (req: Request<{}, Book, CreateBookRequest>, res: Response) => {
     try {
+        console.log('Received POST request:', req.body);
         const newBook = await bookService.createBook(req.body);
         res.status(201).json(newBook);
     } catch (error) {
         console.error('Error creating book:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        
         if (error instanceof Error && error.message.includes('required')) {
-            return res.status(400).json({ error: error.message });
+            return res.status(400).json({ error: errorMessage });
         }
-        res.status(500).json({ error: 'Failed to create book' });
+        res.status(500).json({ 
+            error: 'Failed to create book',
+            details: errorMessage,
+            ...(process.env.NODE_ENV === 'development' && { stack: errorStack })
+        });
     }
 });
 

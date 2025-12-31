@@ -10,14 +10,31 @@ const __dirname = path.dirname(__filename);
 // SQLite database file path
 const dbPath = process.env.DB_PATH || path.join(__dirname, '..', '..', 'data', 'bookshelf.db');
 
+console.log('Database path:', dbPath);
+
 // Ensure data directory exists
 const dataDir = path.dirname(dbPath);
+console.log('Data directory:', dataDir);
+
 if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+    try {
+        fs.mkdirSync(dataDir, { recursive: true });
+        console.log('Data directory created successfully');
+    } catch (error) {
+        console.error('Failed to create data directory:', error);
+        throw error;
+    }
 }
 
 // Create database connection
-const db: Database.Database = new Database(dbPath);
+let db: Database.Database;
+try {
+    db = new Database(dbPath);
+    console.log('Database connection created successfully');
+} catch (error) {
+    console.error('Failed to create database connection:', error);
+    throw error;
+}
 
 // Enable foreign keys and other SQLite optimizations
 db.pragma('journal_mode = WAL'); // Write-Ahead Logging for better concurrency

@@ -3,16 +3,22 @@ import db from '../../utils/connection.js';
 
 // Book repository - handles all database operations
 export const getAllBooks = async (): Promise<Book[]> => {
-    const rows = db.prepare('SELECT * FROM books ORDER BY createdAt DESC').all() as any[];
-    return rows.map(row => ({
-        id: row.id,
-        title: row.title,
-        author: row.author,
-        status: row.status as Book['status'],
-        notes: row.notes || '',
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt
-    }));
+    try {
+        const stmt = db.prepare('SELECT * FROM books ORDER BY createdAt DESC');
+        const rows = stmt.all() as any[];
+        return rows.map(row => ({
+            id: row.id,
+            title: row.title,
+            author: row.author,
+            status: row.status as Book['status'],
+            notes: row.notes || '',
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt
+        }));
+    } catch (error) {
+        console.error('Database error fetching books:', error);
+        throw error;
+    }
 };
 
 export const getBookById = async (id: string): Promise<Book | null> => {
@@ -30,18 +36,24 @@ export const getBookById = async (id: string): Promise<Book | null> => {
 };
 
 export const createBook = async (book: Book): Promise<Book> => {
-    db.prepare(
-        'INSERT INTO books (id, title, author, status, notes, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).run(
-        book.id,
-        book.title,
-        book.author,
-        book.status,
-        book.notes || '',
-        book.createdAt,
-        book.updatedAt
-    );
-    return book;
+    try {
+        const stmt = db.prepare(
+            'INSERT INTO books (id, title, author, status, notes, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        stmt.run(
+            book.id,
+            book.title,
+            book.author,
+            book.status,
+            book.notes || '',
+            book.createdAt,
+            book.updatedAt
+        );
+        return book;
+    } catch (error) {
+        console.error('Database error creating book:', error);
+        throw error;
+    }
 };
 
 export const updateBook = async (id: string, updates: Partial<Book>): Promise<Book | null> => {

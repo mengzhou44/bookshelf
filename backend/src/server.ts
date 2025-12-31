@@ -16,19 +16,39 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
+        console.log('CORS request from origin:', origin);
+        console.log('FRONTEND_URL env var:', process.env.FRONTEND_URL);
+        console.log('Allowed origins:', allowedOrigins);
         
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            // For development, allow localhost
-            if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) {
+            console.log('No origin, allowing request');
+            return callback(null, true);
         }
+        
+        // Check exact match first
+        if (allowedOrigins.includes(origin)) {
+            console.log('Origin allowed (exact match)');
+            callback(null, true);
+            return;
+        }
+        
+        // For development, allow localhost
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+            console.log('Localhost origin, allowing');
+            callback(null, true);
+            return;
+        }
+        
+        // Allow Vercel preview deployments (they have different URLs)
+        if (origin.includes('vercel.app')) {
+            console.log('Vercel origin detected, allowing:', origin);
+            callback(null, true);
+            return;
+        }
+        
+        console.log('Origin not allowed:', origin);
+        callback(new Error('Not allowed by CORS'));
     },
     credentials: true
 }));
